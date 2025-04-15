@@ -31,9 +31,6 @@ public class ServerLevelMixin
 
         for (var player : level.players()) {
             var foodData = ((PlayerEntityMixinDataAccessor) player).sol_valheim$getFoodData();
-            if (foodData.DrinkSlot != null) {
-                foodData.DrinkSlot.ticksLeft = (int) Math.max(1200, foodData.DrinkSlot.ticksLeft - passedTicks);
-            }
             for (var item : foodData.ItemEntries)
             {
                 item.ticksLeft = (int) Math.max(1200, item.ticksLeft - passedTicks);

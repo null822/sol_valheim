@@ -48,11 +48,6 @@ public abstract class PlayerEntityMixin extends LivingEntity implements PlayerEn
 
     protected PlayerEntityMixin(EntityType<? extends LivingEntity> entityType, Level level) { super(entityType, level); }
 
-    @Inject(at = {@At("HEAD")}, method = {"causeFoodExhaustion(F)V"}, cancellable = true)
-    private void onAddExhaustion(float exhaustion, CallbackInfo info) {
-        info.cancel();
-    }
-
     @Inject(at = {@At("HEAD")}, method = {"getFoodData"})
     private void onGetFoodData(CallbackInfoReturnable<FoodData> cir) {
         // hack workaround for player data not being accessible in FoodData
@@ -67,7 +62,8 @@ public abstract class PlayerEntityMixin extends LivingEntity implements PlayerEn
             return;
         }
 
-        sol_valheim$food_data.eatItem(stack.getItem());
+        System.out.println("PlayerEntity Eat: " + stack);
+        sol_valheim$food_data.eatItem(stack);
         sol_valheim$trackData();
     }
 
@@ -154,7 +150,6 @@ public abstract class PlayerEntityMixin extends LivingEntity implements PlayerEn
 
         var foodData = ValheimFoodData.read(nbt.getCompound("sol_food_data"));
         sol_valheim$food_data.MaxItemSlots = foodData.MaxItemSlots;
-        sol_valheim$food_data.DrinkSlot = foodData.DrinkSlot;
         sol_valheim$food_data.ItemEntries = foodData.ItemEntries.stream()
                 .map(ValheimFoodData.EatenFoodItem::new)
                 .collect(Collectors.toCollection(ArrayList::new));

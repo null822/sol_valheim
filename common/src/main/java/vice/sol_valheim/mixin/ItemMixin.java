@@ -32,7 +32,7 @@ public class ItemMixin
                 return;
             }
 
-            var canEat = ((PlayerEntityMixinDataAccessor) player).sol_valheim$getFoodData().canEat(item);
+            var canEat = ((PlayerEntityMixinDataAccessor) player).sol_valheim$getFoodData().canEat(item.getDefaultInstance());
             if (canEat || item.getFoodProperties().canAlwaysEat()) {
                 player.startUsingItem(usedHand);
 

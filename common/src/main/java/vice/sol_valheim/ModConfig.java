@@ -1,6 +1,5 @@
 package vice.sol_valheim;
 
-import me.shedaniel.autoconfig.AutoConfig;
 import me.shedaniel.autoconfig.ConfigData;
 import me.shedaniel.autoconfig.annotation.Config;
 import me.shedaniel.autoconfig.annotation.ConfigEntry;
@@ -9,11 +8,9 @@ import me.shedaniel.cloth.clothconfig.shadowed.blue.endless.jankson.Comment;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffect;
-import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.food.FoodProperties;
-import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.UseAnim;
 
 import java.util.ArrayList;
 import java.util.Dictionary;
@@ -25,28 +22,24 @@ import java.util.List;
 @Config.Gui.Background("minecraft:textures/block/stone.png")
 public class ModConfig extends PartitioningSerializer.GlobalData {
 
-    public static Common.FoodConfig getFoodConfig(Item item) {
-        var isDrink = item.getDefaultInstance().getUseAnimation() == UseAnim.DRINK;
-        if(item != Items.CAKE && !item.isEdible() && !isDrink)
-            return null;
+    public static Common.FoodConfig getFoodConfig(ItemStack itemStack) {
+        var item = itemStack.getItem();
 
         var existing = SOLValheim.Config.common.foodConfigs.get(item.arch$registryName());
         if (existing == null)
         {
             var registry = item.arch$registryName().toString();
 
-            var food = item == Items.CAKE
-                    ? new FoodProperties.Builder().nutrition(10).saturationMod(0.7f).build()
-                    : item.getFoodProperties();
+            var food = item.getFoodProperties();
 
-            if (isDrink) {
-                if (registry.contains("potion")) {
+            if (food == null) {
+                if (item == Items.CAKE) {
+                    food = new FoodProperties.Builder().nutrition(10).saturationMod(0.7f).build();
+                } else if (registry.contains("potion")) {
                     food = new FoodProperties.Builder().nutrition(4).saturationMod(0.75f).build();
-                }
-                else if (registry.contains("milk")) {
+                } else if (registry.contains("milk")) {
                     food = new FoodProperties.Builder().nutrition(6).saturationMod(1f).build();
-                }
-                else {
+                } else {
                     food = new FoodProperties.Builder().nutrition(2).saturationMod(0.5f).build();
                 }
             }
@@ -67,12 +60,6 @@ public class ModConfig extends PartitioningSerializer.GlobalData {
                 existing.nutrition = 10;
                 existing.healthRegenModifier = 1.5f;
             }
-
-//            if (registry.equals("minecraft:beetroot_soup")) {
-//                var effectConfig = new Common.MobEffectConfig();
-//                effectConfig.ID = BuiltInRegistries.MOB_EFFECT.getKey(MobEffects.MOVEMENT_SPEED).toString();
-//                existing.extraEffects.add(effectConfig);
-//            }
 
             SOLValheim.Config.common.foodConfigs.put(item.arch$registryName(), existing);
         }

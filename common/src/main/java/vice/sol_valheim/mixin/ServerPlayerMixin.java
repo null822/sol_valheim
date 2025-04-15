@@ -12,13 +12,18 @@ import vice.sol_valheim.accessors.PlayerEntityMixinDataAccessor;
 public class ServerPlayerMixin
 {
     @Inject(at = @At("HEAD"), method = {"completeUsingItem"})
-    public void render(CallbackInfo ci)
+    public void onCompleteUsingItem(CallbackInfo ci)
     {
         var player = (ServerPlayer) (Object) this;
-        var useItem = player.getUseItem();
-        if (!useItem.isEmpty() && player.isUsingItem() && useItem.getUseAnimation() == UseAnim.DRINK)
+        var stack = player.getUseItem();
+        var animation = stack.getUseAnimation();
+        if (!stack.isEmpty()
+                && player.isUsingItem()
+                && (animation == UseAnim.DRINK ||  animation == UseAnim.EAT || stack.isEdible()))
         {
-            ((PlayerEntityMixinDataAccessor) player).sol_valheim$getFoodData().eatItem(useItem.getItem());
+            System.out.println("ServerPlayer Eat: " + stack);
+
+            ((PlayerEntityMixinDataAccessor) player).sol_valheim$getFoodData().eatItem(stack);
         }
     }
 }

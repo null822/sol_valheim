@@ -62,7 +62,7 @@ public class SOLValheim
 			#if PRE_CURRENT_MC_1_19_2
 			Registry.ITEM.forEach(ModConfig::getFoodConfig);
 			#elif POST_CURRENT_MC_1_20_1
-			BuiltInRegistries.ITEM.forEach(ModConfig::getFoodConfig);
+			BuiltInRegistries.ITEM.forEach((Item item) -> ModConfig.getFoodConfig(item.getDefaultInstance()));
 			#endif
 
 
@@ -93,7 +93,7 @@ public class SOLValheim
 			return;
 		}
 
-		var config = ModConfig.getFoodConfig(food);
+		var config = ModConfig.getFoodConfig(item);
 		if (config == null)
 			return;
 

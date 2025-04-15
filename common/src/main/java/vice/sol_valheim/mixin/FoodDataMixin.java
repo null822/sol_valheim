@@ -4,7 +4,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.food.FoodData;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -34,8 +33,21 @@ public class FoodDataMixin implements FoodDataPlayerAccessor
             return;
         }
 
+        System.out.println("FoodData Eat: " + stack);
+
         var foodData = ((PlayerEntityMixinDataAccessor) sol_valheim$player).sol_valheim$getFoodData();
-        if (foodData.canEat(item))
-            foodData.eatItem(item);
+        if (foodData.canEat(stack))
+            foodData.eatItem(stack);
+    }
+
+    @Inject(at = @At("TAIL"), method = "tick")
+    public void onTick(Player player, CallbackInfo ci)
+    {
+        var vanillaFoodData = sol_valheim$player.getFoodData();
+        var valheimFoodData = ((PlayerEntityMixinDataAccessor) sol_valheim$player).sol_valheim$getFoodData();
+
+        var fill = (valheimFoodData.ItemEntries.size() * 20) / valheimFoodData.MaxItemSlots;
+        if (vanillaFoodData.getFoodLevel() != fill)
+            vanillaFoodData.setFoodLevel(fill);
     }
 }

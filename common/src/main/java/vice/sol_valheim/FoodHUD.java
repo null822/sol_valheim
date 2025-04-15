@@ -2,7 +2,6 @@ package vice.sol_valheim;
 
 
 
-import com.mojang.blaze3d.vertex.PoseStack;
 import dev.architectury.event.events.client.ClientGuiEvent;
 import dev.architectury.platform.Platform;
 import net.minecraft.client.Minecraft;
@@ -20,16 +19,11 @@ import net.minecraft.client.gui.GuiComponent;
 #elif POST_CURRENT_MC_1_20_1
 
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.util.CommonColors;
 
 #endif
 
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FastColor;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.UseAnim;
@@ -70,9 +64,6 @@ public class FoodHUD implements ClientGuiEvent.RenderHud
             renderFoodSlot(graphics, food, width, size, offset, height, useLargeIcons);
             offset++;
         }
-
-        if (foodData.DrinkSlot != null)
-            renderFoodSlot(graphics, foodData.DrinkSlot, width, size, offset, height, useLargeIcons);
     }
 
     private static void renderFoodSlot(#if PRE_CURRENT_MC_1_19_2 PoseStack #elif POST_CURRENT_MC_1_20_1 GuiGraphics #endif graphics, ValheimFoodData.EatenFoodItem food, int width, int size, int offset, int height, boolean useLargeIcons)
@@ -81,7 +72,7 @@ public class FoodHUD implements ClientGuiEvent.RenderHud
         if (foodConfig == null)
             return;
 
-        var isDrink = food.item.getDefaultInstance().getUseAnimation() == UseAnim.DRINK;
+        var isDrink = food.item.getUseAnimation() == UseAnim.DRINK;
         int bgColor = isDrink ? FastColor.ARGB32.color(96, 52, 104, 163) : FastColor.ARGB32.color(96, 0, 0, 0);
         int yellow = FastColor.ARGB32.color(255, 255, 191, 0);
 
@@ -112,14 +103,14 @@ public class FoodHUD implements ClientGuiEvent.RenderHud
         pose.scale(scale, scale, scale);
         pose.translate(startWidth * (useLargeIcons ? 0.3333f : 1f), height * (useLargeIcons ? 0.3333f : 1f), 0f);
 
-        if (food.item == Items.CAKE && Platform.isModLoaded("farmersdelight"))
+        if (food.item.is(Items.CAKE) && Platform.isModLoaded("farmersdelight"))
         {
             var cakeSlice = SOLValheim.ITEMS.getRegistrar().get(new ResourceLocation("farmersdelight:cake_slice"));
-            renderGUIItem(graphics, new ItemStack(cakeSlice == null ? food.item : cakeSlice, 1), startWidth + 1, height + 1);
+            renderGUIItem(graphics, cakeSlice == null ? food.item : cakeSlice.getDefaultInstance(), startWidth + 1, height + 1);
         }
         else
         {
-            renderGUIItem(graphics, new ItemStack(food.item, 1), startWidth + 1, height + 1);
+            renderGUIItem(graphics, food.item, startWidth + 1, height + 1);
         }
 
         pose.pushPose();

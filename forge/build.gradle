@@ -93,7 +93,7 @@ components.java {
     }
 }
 
-publishMods {
+/*publishMods {
     file = remapJar.archiveFile
     version = "$mod_version-forge-mc$rootProject.minecraft_version"
     type = STABLE
@@ -128,7 +128,7 @@ publishMods {
             slug = "architectury-api"
         }
     }
-}
+}*/
 
 publishing {
     publications {
