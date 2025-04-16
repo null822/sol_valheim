@@ -21,8 +21,6 @@ public class ServerPlayerMixin
                 && player.isUsingItem()
                 && (animation == UseAnim.DRINK ||  animation == UseAnim.EAT || stack.isEdible()))
         {
-            System.out.println("ServerPlayer Eat: " + stack);
-
             ((PlayerEntityMixinDataAccessor) player).sol_valheim$getFoodData().eatItem(stack);
         }
     }

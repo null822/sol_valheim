@@ -72,8 +72,9 @@ public class FoodHUD implements ClientGuiEvent.RenderHud
         if (foodConfig == null)
             return;
 
-        var isDrink = food.item.getUseAnimation() == UseAnim.DRINK;
-        int bgColor = isDrink ? FastColor.ARGB32.color(96, 52, 104, 163) : FastColor.ARGB32.color(96, 0, 0, 0);
+        var foodProperties = food.item.getItem().getFoodProperties();
+        var canAlwaysEat = foodProperties == null || foodProperties.canAlwaysEat();
+        int bgColor = canAlwaysEat ? FastColor.ARGB32.color(96, 216, 160, 19) : FastColor.ARGB32.color(96, 0, 0, 0);
         int yellow = FastColor.ARGB32.color(255, 255, 191, 0);
 
         int startWidth = width - (size * offset) - offset + 1;

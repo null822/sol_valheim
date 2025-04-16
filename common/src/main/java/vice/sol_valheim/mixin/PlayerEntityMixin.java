@@ -9,8 +9,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.food.FoodData;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -54,19 +52,6 @@ public abstract class PlayerEntityMixin extends LivingEntity implements PlayerEn
         ((FoodDataPlayerAccessor) foodData).sol_valheim$setPlayer((Player) (LivingEntity) this);
     }
 
-    @Inject(at = {@At("HEAD")}, method = {"eat(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/item/ItemStack;)Lnet/minecraft/world/item/ItemStack;"})
-    private void onEatFood(Level world, ItemStack stack, CallbackInfoReturnable<ItemStack> info) {
-        if (stack.getItem() == Items.ROTTEN_FLESH) {
-            sol_valheim$food_data.clear();
-            sol_valheim$trackData();
-            return;
-        }
-
-        System.out.println("PlayerEntity Eat: " + stack);
-        sol_valheim$food_data.eatItem(stack);
-        sol_valheim$trackData();
-    }
-
     @Inject(at = {@At("HEAD")}, method = {"tick"})
     private void onTick(CallbackInfo info) {
         sol_valheim$tick();
@@ -83,33 +68,35 @@ public abstract class PlayerEntityMixin extends LivingEntity implements PlayerEn
         if (level.isClientSide)
             return;
 
-        if (isDeadOrDying()) {
+        if (isDeadOrDying() && !sol_valheim$food_data.ItemEntries.isEmpty()) {
             sol_valheim$food_data.clear();
             sol_valheim$trackData();
             return;
         }
 
-        if (!sol_valheim$food_data.ItemEntries.isEmpty()) {
-            sol_valheim$food_data.tick();
-            sol_valheim$trackData();
-        }
+        sol_valheim$food_data.tick();
+        sol_valheim$trackData();
 
-        float maxhp = Math.min(40, (SOLValheim.Config.common.startingHealth * 2) + sol_valheim$food_data.getTotalFoodNutrition());
 
-        Player player = (Player) (LivingEntity) this;
+        float maxHealth = (SOLValheim.Config.common.startingHearts * 2) + sol_valheim$food_data.getHealth();
+
+        Player player = (Player)(LivingEntity)this;
         player.getFoodData().setSaturation(0);
 
-        player.getAttribute(Attributes.MAX_HEALTH).setBaseValue(maxhp);
-        //if (getHealth() > maxhp)
-        //    setHealth(maxhp);
+        var healthAttribute = player.getAttribute(Attributes.MAX_HEALTH);
+        if (healthAttribute != null) {
+            var healthRatio = player.getHealth() / healthAttribute.getValue();
+            healthAttribute.setBaseValue(maxHealth);
+            player.setHealth((float)(maxHealth * healthRatio));
+        }
 
-        if (SOLValheim.Config.common.speedBoost > 0.01f) {
-            var attr = player.getAttribute(Attributes.MOVEMENT_SPEED);
-            var speedBuff = attr.getModifier(SOLValheim.getSpeedBuffModifier().getId());
-            if (maxhp >= 20 && speedBuff == null)
-                attr.addTransientModifier(SOLValheim.getSpeedBuffModifier());
-            else if (maxhp < 20 && speedBuff != null)
-                attr.removeModifier(SOLValheim.getSpeedBuffModifier());
+        var movementSpeedAttribute = player.getAttribute(Attributes.MOVEMENT_SPEED);
+        if (SOLValheim.Config.common.speedBoost > 0.01f && movementSpeedAttribute != null) {
+            var speedBuff = movementSpeedAttribute.getModifier(SOLValheim.getSpeedBuffModifier().getId());
+            if (maxHealth >= 20 && speedBuff == null)
+                movementSpeedAttribute.addTransientModifier(SOLValheim.getSpeedBuffModifier());
+            else if (maxHealth < 20 && speedBuff != null)
+                movementSpeedAttribute.removeModifier(SOLValheim.getSpeedBuffModifier());
         }
 
         var timeSinceHurt = level.getGameTime() - ((LivingEntityDamageAccessor) this).getLastDamageStamp();
@@ -120,7 +107,7 @@ public abstract class PlayerEntityMixin extends LivingEntity implements PlayerEn
     }
 
     @Inject(at = {@At("HEAD")}, method = {"canEat(Z)Z"}, cancellable = true)
-    private void onCanConsume(boolean ignorehunger, CallbackInfoReturnable<Boolean> info) {
+    private void onCanConsume(boolean canAlwaysEat, CallbackInfoReturnable<Boolean> info) {
         info.setReturnValue(true);
         info.cancel();
     }
@@ -165,8 +152,6 @@ public abstract class PlayerEntityMixin extends LivingEntity implements PlayerEn
         #elif POST_CURRENT_MC_1_20_1
         this.entityData.set(sol_valheim$DATA_ACCESSOR, sol_valheim$food_data, true);
         #endif
-
-
     }
 
     @Inject(at = {@At("TAIL")}, method = {"defineSynchedData"})

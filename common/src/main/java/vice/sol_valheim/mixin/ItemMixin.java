@@ -19,29 +19,20 @@ public class ItemMixin
     @Inject(at= {@At("HEAD")}, method = {"use(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/InteractionHand;)Lnet/minecraft/world/InteractionResultHolder;"}, cancellable = true)
     private void onCanConsume(Level level, Player player, InteractionHand usedHand, CallbackInfoReturnable<InteractionResultHolder<ItemStack>> info)
     {
-        var item = (Item) (Object) this;
+        var stack = player.getItemInHand(usedHand);
+        var item = stack.getItem();
 
         if (item.isEdible()) {
-            ItemStack itemStack = player.getItemInHand(usedHand);
-
-            if (item == Items.ROTTEN_FLESH) {
+            var canEat = ((PlayerEntityMixinDataAccessor)player).sol_valheim$getFoodData().canEat(stack);
+            if (canEat) {
                 player.startUsingItem(usedHand);
 
-                info.setReturnValue(InteractionResultHolder.consume(itemStack));
+                info.setReturnValue(InteractionResultHolder.consume(stack));
                 info.cancel();
                 return;
             }
 
-            var canEat = ((PlayerEntityMixinDataAccessor) player).sol_valheim$getFoodData().canEat(item.getDefaultInstance());
-            if (canEat || item.getFoodProperties().canAlwaysEat()) {
-                player.startUsingItem(usedHand);
-
-                info.setReturnValue(InteractionResultHolder.consume(itemStack));
-                info.cancel();
-                return;
-            }
-
-            info.setReturnValue(InteractionResultHolder.fail(itemStack));
+            info.setReturnValue(InteractionResultHolder.fail(stack));
             info.cancel();
             return;
         }

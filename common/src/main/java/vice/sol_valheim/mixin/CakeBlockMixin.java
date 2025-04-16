@@ -26,8 +26,6 @@ public class CakeBlockMixin
             if (level.isClientSide())
                 return;
 
-            System.out.println("CakeBlock Eat");
-
             foodData.eatItem(Items.CAKE.getDefaultInstance());
             return;
         }

@@ -6,11 +6,11 @@ import me.shedaniel.autoconfig.annotation.ConfigEntry;
 import me.shedaniel.autoconfig.serializer.PartitioningSerializer;
 import me.shedaniel.cloth.clothconfig.shadowed.blue.endless.jankson.Comment;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.UseAnim;
 
 import java.util.ArrayList;
 import java.util.Dictionary;
@@ -26,45 +26,63 @@ public class ModConfig extends PartitioningSerializer.GlobalData {
         var item = itemStack.getItem();
 
         var existing = SOLValheim.Config.common.foodConfigs.get(item.arch$registryName());
-        if (existing == null)
-        {
-            var registry = item.arch$registryName().toString();
 
-            var food = item.getFoodProperties();
+        if (existing == null) {
+            existing = generateFoodConfig(itemStack);
 
-            if (food == null) {
-                if (item == Items.CAKE) {
-                    food = new FoodProperties.Builder().nutrition(10).saturationMod(0.7f).build();
-                } else if (registry.contains("potion")) {
-                    food = new FoodProperties.Builder().nutrition(4).saturationMod(0.75f).build();
-                } else if (registry.contains("milk")) {
-                    food = new FoodProperties.Builder().nutrition(6).saturationMod(1f).build();
-                } else {
-                    food = new FoodProperties.Builder().nutrition(2).saturationMod(0.5f).build();
-                }
+            if (existing != null) {
+                SOLValheim.Config.common.foodConfigs.put(item.arch$registryName(), existing);
             }
-
-            existing = new Common.FoodConfig();
-            existing.nutrition = food.getNutrition();
-            existing.healthRegenModifier = 1f;
-            existing.saturationModifier = food.getSaturationModifier();
-
-            if (registry.startsWith("farmers"))
-            {
-                existing.nutrition = (int) ((existing.nutrition * 1.25));
-                existing.saturationModifier = existing.saturationModifier * 1.10f;
-                existing.healthRegenModifier = 1.25f;
-            }
-
-            if (registry.equals("minecraft:golden_apple") || registry.equals("minecraft:enchanted_golden_apple")) {
-                existing.nutrition = 10;
-                existing.healthRegenModifier = 1.5f;
-            }
-
-            SOLValheim.Config.common.foodConfigs.put(item.arch$registryName(), existing);
         }
 
         return existing;
+    }
+
+    private static Common.FoodConfig generateFoodConfig(ItemStack itemStack) {
+
+        var item = itemStack.getItem();
+        var registryName = item.arch$registryName();
+        if (registryName == null) {
+            return null;
+        }
+        var itemId = registryName.toString();
+
+        var food = item.getFoodProperties();
+        if (food == null) {
+            if (item == Items.CAKE) {
+                food = new FoodProperties.Builder().nutrition(10).saturationMod(1f).build();
+            } else if (itemId.equals("minecraft:potion")) {
+                food = new FoodProperties.Builder().nutrition(1).saturationMod(0.75f).build();
+            } else if (itemId.contains("milk")) {
+                food = new FoodProperties.Builder().nutrition(6).saturationMod(1f).build();
+            } else if (itemStack.getUseAnimation() == UseAnim.DRINK) {
+                food = new FoodProperties.Builder().nutrition(2).saturationMod(0.4f).build();
+            } else {
+                return null;
+            }
+        }
+
+        var config = new Common.FoodConfig();
+        config.nutrition = food.getNutrition();
+        config.healthRegenModifier = 1f;
+        config.saturationModifier = food.getSaturationModifier();
+
+        if (itemId.startsWith("farmers")) {
+            config.nutrition *= 1.25f;
+            config.saturationModifier *= 1.10f;
+            config.healthRegenModifier *= 1.25f;
+        }
+
+        if (itemId.equals("minecraft:golden_apple")) {
+            config.nutrition = 10;
+            config.healthRegenModifier = 1.5f;
+        }
+        if (itemId.equals("minecraft:enchanted_golden_apple")) {
+            config.nutrition = 25;
+            config.healthRegenModifier = 3f;
+        }
+
+        return config;
     }
 
 
@@ -96,7 +114,7 @@ public class ModConfig extends PartitioningSerializer.GlobalData {
         public float speedBoost = 0.20f;
 
         @ConfigEntry.Gui.Tooltip() @Comment("Number of hearts to start with")
-        public int startingHealth = 3;
+        public float startingHearts = 3;
 
         @ConfigEntry.Gui.Tooltip() @Comment("Number of food slots (range 2-5, default 3)")
         public int maxSlots = 3;
@@ -120,7 +138,7 @@ public class ModConfig extends PartitioningSerializer.GlobalData {
         public Dictionary<ResourceLocation, FoodConfig> foodConfigs = new Hashtable<>();
 
         public static final class FoodConfig implements ConfigData {
-            public int nutrition;
+            public float nutrition;
             public float saturationModifier = 1f;
             public float healthRegenModifier = 1f;
             public List<MobEffectConfig> extraEffects = new ArrayList<>();
@@ -130,13 +148,13 @@ public class ModConfig extends PartitioningSerializer.GlobalData {
                 return Math.max(time, 6000);
             }
 
-            public int getHearts() {
-                return Math.max(nutrition, 2);
+            public float getHealth() {
+                return nutrition;
             }
 
             public float getHealthRegen()
             {
-                return Mth.clamp(nutrition * 0.10f * healthRegenModifier, 0.25f, 2f);
+                return nutrition * 0.10f * healthRegenModifier;
             }
         }
 

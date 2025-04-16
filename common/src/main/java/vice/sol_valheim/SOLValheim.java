@@ -72,15 +72,6 @@ public class SOLValheim
 			long executionTime = (endTime - startTime) / 1000000;
 			System.out.println("Generating default food configs took " + executionTime + "ms.");
 		}
-
-//
-//		try	{
-//			var field = FoodProperties.class.getDeclaredField("canAlwaysEat");
-//			field.setBoolean(Items.ROTTEN_FLESH.getFoodProperties(), true);
-//		}
-//		catch (Exception e) {
-//			System.out.println(e);
-//		}
 	}
 
 
@@ -89,7 +80,7 @@ public class SOLValheim
 	{
 		var food = item.getItem();
 		if (food == Items.ROTTEN_FLESH) {
-			list.add(Component.literal("☠ Empties Your Stomach!").withStyle(ChatFormatting.GREEN));
+			list.add(Component.literal("Empties Your Stomach!").withStyle(ChatFormatting.GREEN));
 			return;
 		}
 
@@ -97,25 +88,23 @@ public class SOLValheim
 		if (config == null)
 			return;
 
-		var hearts = config.getHearts() % 2 == 0 ? config.getHearts() / 2 : String.format("%.1f", (float) config.getHearts() / 2f);
-		list.add(Component.literal("❤ " + hearts + " Heart" + (config.getHearts() / 2f > 1 ? "s" : "")).withStyle(ChatFormatting.RED));
-		list.add(Component.literal("☀ " + String.format("%.1f", config.getHealthRegen()) + " Regen").withStyle(ChatFormatting.DARK_RED));
-
+		var hearts = config.getHealth() / 2f;
 		var minutes = (float) config.getTime() / (20 * 60);
 
-		list.add(Component.literal("⌚ " + String.format("%.0f", minutes)  + " Minute" + (minutes > 1 ? "s" : "")).withStyle(ChatFormatting.GOLD));
+		list.add(Component.literal(String.format("%+.1f", hearts) + " Heart" + (hearts == 1 ? "" : "s")).withStyle(ChatFormatting.RED));
+		list.add(Component.literal(String.format("%+.1f", config.getHealthRegen()) + " Regen").withStyle(ChatFormatting.YELLOW));
+		list.add(Component.literal(String.format(" %.0f", minutes) + " Minute" + (minutes == 1 ? "" : "s")).withStyle(ChatFormatting.AQUA));
 
 		for (var effect : config.extraEffects) {
 			var eff = effect.getEffect();
 			if (eff == null)
 				continue;
 
-			list.add(Component.literal("★ " + eff.getDisplayName().getString() + (effect.amplifier > 1 ? " " + effect.amplifier : "")).withStyle(ChatFormatting.GREEN));
+			list.add(Component.literal("+ " + eff.getDisplayName().getString() + (effect.amplifier > 1 ? " " + effect.amplifier : "")).withStyle(ChatFormatting.GREEN));
 		}
 
 		if (item.getUseAnimation() == UseAnim.DRINK) {
-			list.add(Component.literal("❄ Refreshing!").withStyle(ChatFormatting.AQUA));
-
+			list.add(Component.literal(String.format("%+.0f", SOLValheim.Config.common.drinkSlotFoodEffectivenessBonus * 100) + "% Food Stats Boost").withStyle(ChatFormatting.LIGHT_PURPLE));
 		}
 	}
 }

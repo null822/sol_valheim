@@ -47,44 +47,59 @@ public class ValheimFoodData
 
     public boolean canEat(ItemStack food)
     {
+        food = food.copyWithCount(1);
+        var reg = BuiltInRegistries.ITEM.getKey(food.getItem());
+
         if (food.getItem() == Items.ROTTEN_FLESH)
             return true;
 
-        var existing = getEatenFood(food);
-        if (existing != null)
-            return existing.canEatEarly();
+        var foodProperties = food.getItem().getFoodProperties();
+        var canAlwaysEat = foodProperties == null || foodProperties.canAlwaysEat();
+        var freeSpace = ItemEntries.size() < MaxItemSlots;
 
-        if (ItemEntries.size() < MaxItemSlots)
+        var existing = getEatenFood(food);
+        if (existing != null) {
+            return existing.canEatEarly() || (canAlwaysEat && freeSpace);
+        }
+
+        if (freeSpace)
             return true;
 
         return ItemEntries.stream().anyMatch(EatenFoodItem::canEatEarly);
     }
 
     public EatenFoodItem getEatenFood(ItemStack food) {
-        return ItemEntries.stream()
-                .filter((item) -> ItemStack.matches(item.item, food))
-                .findFirst()
-                .orElse(null);
+
+        for (EatenFoodItem item : ItemEntries) {
+            if (ItemStack.isSameItemSameTags(item.item, food))
+                return item;
+        }
+        return null;
     }
 
     public void eatItem(ItemStack food)
     {
-        System.out.println("Eat: " + BuiltInRegistries.ITEM.getKey(food.getItem()));
         food = food.copyWithCount(1);
 
-        if (food.getItem() == Items.ROTTEN_FLESH)
+        if (food.getItem() == Items.ROTTEN_FLESH) {
+            clear();
             return;
+        }
 
         var config = ModConfig.getFoodConfig(food);
+        if (config == null) return;
+        var foodProperties = food.getItem().getFoodProperties();
+        var canAlwaysEat = foodProperties == null || foodProperties.canAlwaysEat();
+        var freeSpace = ItemEntries.size() < MaxItemSlots;
 
         var existing = getEatenFood(food);
-        if (existing != null)
-        {
-            if (!existing.canEatEarly())
+        if (existing != null && !(canAlwaysEat && freeSpace)) {
+            if (existing.canEatEarly()) {
+                existing.ticksLeft += config.getTime();
                 return;
+            }
 
-            existing.ticksLeft = config.getTime();
-            return;
+            return; // ignore the food if it can't be eaten early
         }
 
         if (ItemEntries.size() < MaxItemSlots)
@@ -121,48 +136,61 @@ public class ValheimFoodData
         ItemEntries.clear();
     }
 
-    public float getTotalFoodNutrition()
+    public void reduceTimers(int ticks)
     {
-        float nutrition = 0f;
+        for (var item : ItemEntries) {
+            item.ticksLeft -= ticks;
+        }
+    }
+
+    public float getHealth()
+    {
+        float health = 0f;
+        float bonus = 0f;
         for (var item : ItemEntries)
         {
-            ModConfig.Common.FoodConfig food = ModConfig.getFoodConfig(item.item);
-            if (food == null)
+            var config = ModConfig.getFoodConfig(item.item);
+            if (config == null)
                 continue;
 
-            nutrition += food.getHearts();
-        }
+            health += config.getHealth();
 
-        return nutrition;
+            // drink bonus
+            if (item.item.getUseAnimation() == UseAnim.DRINK) {
+                bonus += SOLValheim.Config.common.drinkSlotFoodEffectivenessBonus;
+            }
+        }
+        health *= 1 + bonus;
+
+        return health;
     }
 
 
     public float getRegenSpeed()
     {
         float regen = 0.25f;
+        float bonus = 0f;
         for (var item : ItemEntries)
         {
-            ModConfig.Common.FoodConfig food = ModConfig.getFoodConfig(item.item);
-            if (food == null)
+            var config = ModConfig.getFoodConfig(item.item);
+            if (config == null)
                 continue;
 
-            regen += food.getHealthRegen();
+            regen += config.getHealthRegen();
 
             // drink bonus
             if (item.item.getUseAnimation() == UseAnim.DRINK) {
-                regen = regen * (1.0f + SOLValheim.Config.common.drinkSlotFoodEffectivenessBonus);
+                bonus += SOLValheim.Config.common.drinkSlotFoodEffectivenessBonus;
             }
-
         }
+        regen *= 1 + bonus;
 
         return regen;
     }
 
 
     public CompoundTag save(CompoundTag tag) {
-//        int count = 0;
         tag.putInt("max_slots", MaxItemSlots);
-//        tag.putInt("count", ItemEntries.size());
         var stomach = new ListTag();
         for (var item : ItemEntries)
         {
